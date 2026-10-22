@@ -1,0 +1,116 @@
+package com.mahghuuuls.setworks.core.eval;
+
+import com.mahghuuuls.setworks.api.BonusState;
+import com.mahghuuuls.setworks.core.match.SlotCandidate;
+
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Everything Setworks knows about one player: per set, the satisfied pieces and the slot that
+ * fills each; per bonus, its state, the detail of its reason, and the condition schedule.
+ * Owned by the evaluator; read by the inspect command, queries, and sync.
+ */
+public final class PlayerSetState {
+
+    public static final class SetState {
+        private final Map<String, SlotCandidate> satisfied;
+
+        SetState(Map<String, SlotCandidate> satisfied) {
+            this.satisfied = Collections.unmodifiableMap(new LinkedHashMap<String, SlotCandidate>(satisfied));
+        }
+
+        /** Piece name to the slot filling it. */
+        public Map<String, SlotCandidate> satisfiedPieces() {
+            return satisfied;
+        }
+
+        public int count() {
+            return satisfied.size();
+        }
+
+        public boolean isSatisfied(String pieceName) {
+            return satisfied.containsKey(pieceName);
+        }
+    }
+
+    public static final class BonusEntry {
+        private final BonusState state;
+        private final String detail;
+        private final long lastConditionTick;
+
+        BonusEntry(BonusState state, String detail, long lastConditionTick) {
+            this.state = state;
+            this.detail = detail == null ? "" : detail;
+            this.lastConditionTick = lastConditionTick;
+        }
+
+        public BonusState state() {
+            return state;
+        }
+
+        /** For example the missing set and count, or the condition that failed. */
+        public String detail() {
+            return detail;
+        }
+
+        /** Tick of the last condition evaluation, or -1 when never evaluated. */
+        public long lastConditionTick() {
+            return lastConditionTick;
+        }
+
+        public boolean isActive() {
+            return state.isActive();
+        }
+    }
+
+    private final UUID playerId;
+    private final String playerName;
+    private final Map<String, SetState> sets;
+    private final Map<String, BonusEntry> bonuses;
+
+    PlayerSetState(UUID playerId, String playerName, Map<String, SetState> sets, Map<String, BonusEntry> bonuses) {
+        this.playerId = playerId;
+        this.playerName = playerName;
+        this.sets = Collections.unmodifiableMap(new LinkedHashMap<String, SetState>(sets));
+        this.bonuses = Collections.unmodifiableMap(new LinkedHashMap<String, BonusEntry>(bonuses));
+    }
+
+    public static PlayerSetState empty(UUID playerId, String playerName) {
+        return new PlayerSetState(playerId, playerName, Collections.<String, SetState>emptyMap(),
+                Collections.<String, BonusEntry>emptyMap());
+    }
+
+    public UUID playerId() {
+        return playerId;
+    }
+
+    public String playerName() {
+        return playerName;
+    }
+
+    public Map<String, SetState> sets() {
+        return sets;
+    }
+
+    public Map<String, BonusEntry> bonuses() {
+        return bonuses;
+    }
+
+    public int pieceCount(String setId) {
+        SetState set = sets.get(setId);
+        return set == null ? 0 : set.count();
+    }
+
+    public boolean isActive(String bonusId) {
+        BonusEntry entry = bonuses.get(bonusId);
+        return entry != null && entry.isActive();
+    }
+
+    public BonusState bonusState(String bonusId) {
+        BonusEntry entry = bonuses.get(bonusId);
+        return entry == null ? BonusState.MISSING_EQUIPMENT : entry.state();
+    }
+}

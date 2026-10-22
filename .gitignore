@@ -26,3 +26,6 @@ run
 
 # development-only runtime jars (agent diagnostics toolkit)
 libs
+
+# log4j output of test runs started from the project root
+logs
