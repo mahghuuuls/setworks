@@ -17,7 +17,7 @@ public final class ExampleSets {
 
     public static final DefinitionSource SOURCE = DefinitionSource.builtin("setworks:examples");
 
-    /** System property that adds one deliberately broken set, for development checks of the validate command. */
+    /** System property that adds development fixtures: one deliberately broken set and the {@link DevFixtures} (a duplicate registration, a disabled bonus, two listeners). */
     public static final String INVALID_EXAMPLE_PROPERTY = "setworks.invalidExample";
 
     private ExampleSets() {
@@ -108,6 +108,7 @@ public final class ExampleSets {
             SetworksApi.registerBonus(BonusBuilder.bonus("setworks:broken_example_full")
                     .requiresAll("setworks:broken_example")
                     .description("Broken Example: should never be active"), SOURCE);
+            DevFixtures.register();
         }
     }
 }
