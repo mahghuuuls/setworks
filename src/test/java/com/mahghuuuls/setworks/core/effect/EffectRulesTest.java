@@ -54,11 +54,16 @@ class EffectRulesTest {
 
     @Test
     void topUpWaitsForTheFloorSoPeriodicPotionsPulseAtTheVanillaRate() {
-        assertTrue(PotionSignature.needsTopUp(false, 0), "absent effect");
-        assertFalse(PotionSignature.needsTopUp(true, 330));
-        assertFalse(PotionSignature.needsTopUp(true, 231));
-        assertTrue(PotionSignature.needsTopUp(true, 230));
-        assertTrue(PotionSignature.needsTopUp(true, 1));
+        int one = 0, two = 1;
+        assertTrue(PotionSignature.needsTopUp(false, 0, 0, one), "absent effect (milk)");
+        assertFalse(PotionSignature.needsTopUp(true, one, 330, one));
+        assertFalse(PotionSignature.needsTopUp(true, one, 231, one));
+        assertTrue(PotionSignature.needsTopUp(true, one, 230, one));
+        assertTrue(PotionSignature.needsTopUp(true, one, 1, one));
+        // Levels: a level-2 instance under a healthy level-1 effect must raise it (a lower instance restored it first after milk).
+        assertTrue(PotionSignature.needsTopUp(true, one, 330, two), "a lower level present is raised");
+        assertFalse(PotionSignature.needsTopUp(true, two, 330, one), "a higher level present is left alone");
+        assertTrue(PotionSignature.needsTopUp(true, two, 230, one), "but at the floor even a lower instance tops up (vanilla ignores the weaker add)");
         // The countdown from the top-up value down to the floor is one uninterrupted window; vanilla pulses
         // Regeneration when the duration is a multiple of 50 and Poison at 25, checked before counting down.
         int window = PotionSignature.DURATION_TICKS - PotionSignature.TOP_UP_BELOW_TICKS;

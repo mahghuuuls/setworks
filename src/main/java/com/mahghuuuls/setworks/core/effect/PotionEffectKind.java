@@ -66,8 +66,8 @@ public final class PotionEffectKind implements IEffectKind {
     public void refresh(EntityPlayerMP player, String instanceId, Map<String, String> params) {
         PotionSignature.Params parsed = PotionSignature.parse(params);
         PotionEffect current = player.getActivePotionEffect(require(parsed.potionId()));
-        // A lower Setworks level under a higher one sees the higher effect here and leaves it alone; vanilla would ignore the re-add anyway.
-        if (PotionSignature.needsTopUp(current != null, current == null ? 0 : current.getDuration())) {
+        if (PotionSignature.needsTopUp(current != null, current == null ? 0 : current.getAmplifier(),
+                current == null ? 0 : current.getDuration(), parsed.amplifier())) {
             renew(player, parsed);
         }
     }

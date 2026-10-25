@@ -24,9 +24,13 @@ public final class PotionSignature {
     private PotionSignature() {
     }
 
-    /** True when a check must top the effect up: it is absent, or it has run down to the floor. */
-    public static boolean needsTopUp(boolean present, int currentDuration) {
-        return !present || currentDuration <= TOP_UP_BELOW_TICKS;
+    /**
+     * True when a check must top the effect up: it is absent (cleared by milk, for example), it is a
+     * lower level than ours (adding ours raises it; vanilla keeps the higher amplifier), or it has run
+     * down to the floor. A higher level present stays untouched: vanilla ignores a weaker add.
+     */
+    public static boolean needsTopUp(boolean present, int currentAmplifier, int currentDuration, int ownAmplifier) {
+        return !present || currentAmplifier < ownAmplifier || currentDuration <= TOP_UP_BELOW_TICKS;
     }
 
     /** True when the player's current effect is the one Setworks applied and may be removed. */
