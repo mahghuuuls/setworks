@@ -27,7 +27,9 @@ import java.util.Map;
  * the validation, listener, and addon behavior that ordinary examples cannot show: a duplicate
  * registration that is rejected, a disabled bonus, a listener that throws beside one that keeps
  * working, an addon effect kind that logs every call with its instance id, and an effect kind that
- * fails, a condition kind that always throws, and a bonus with two conditions. Never enabled in a normal pack.
+ * fails, a condition kind that always throws, a condition kind that throws only while sneaking (so an
+ * error episode can end and start again), two Speed levels from two bonuses, and a bonus with two
+ * conditions. Never enabled in a normal pack.
  */
 public final class DevFixtures {
 
@@ -155,6 +157,44 @@ public final class DevFixtures {
                 .requires("setworks:iron_armor", 1)
                 .condition("fixture:throws", Collections.<String, String>emptyMap())
                 .description("Fixture Throwing Condition"), SOURCE);
+        // Throws only while the player sneaks: standing up ends the error episode, sneaking again starts a new one (a second warning).
+        SetworksApi.registerConditionKind(new IConditionKind() {
+            @Override
+            public String id() {
+                return "fixture:throws_when_sneaking";
+            }
+
+            @Override
+            public ICondition create(Map<String, String> params) {
+                return new ICondition() {
+                    @Override
+                    public boolean test(EntityPlayerMP player, IConditionContext context) {
+                        if (player.isSneaking()) {
+                            throw new IllegalStateException("dev fixture condition throws while sneaking");
+                        }
+                        return true;
+                    }
+                };
+            }
+
+            @Override
+            public String describe(Map<String, String> params) {
+                return "throws while sneaking";
+            }
+        });
+        SetworksApi.registerBonus(BonusBuilder.bonus("setworks:fixture_recovering_condition")
+                .requires("setworks:iron_armor", 1)
+                .condition("fixture:throws_when_sneaking", Collections.<String, String>emptyMap())
+                .description("Fixture Recovering Condition"), SOURCE);
+        // Two Setworks sources of one potion at different levels: the higher wins while both are active, the lower returns when it withdraws.
+        SetworksApi.registerBonus(BonusBuilder.bonus("setworks:fixture_speed_one")
+                .requires("setworks:iron_armor", 2)
+                .potion("minecraft:speed", 1, false)
+                .description("Fixture Speed One"), SOURCE);
+        SetworksApi.registerBonus(BonusBuilder.bonus("setworks:fixture_speed_two")
+                .requiresAll("setworks:iron_armor")
+                .potion("minecraft:speed", 2, false)
+                .description("Fixture Speed Two"), SOURCE);
         // Two conditions: both must pass; the first failing one names itself in the reason.
         SetworksApi.registerBonus(BonusBuilder.bonus("setworks:fixture_two_conditions")
                 .requires("setworks:iron_armor", 1)

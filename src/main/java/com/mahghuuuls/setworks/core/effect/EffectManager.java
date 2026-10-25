@@ -230,6 +230,11 @@ public final class EffectManager {
 
     /** One line per effect of the bonus: description, combination rule, and whether it is applied, failed, or inactive for the player. */
     public List<String> effectLines(UUID player, BonusDefinition bonus) {
+        return effectLines(player, bonus, null);
+    }
+
+    /** As above; with the entity, an attribute effect's line also reads the attribute's current value from the player (vanilla's own number). */
+    public List<String> effectLines(UUID player, BonusDefinition bonus, EntityPlayerMP entity) {
         List<String> lines = new ArrayList<String>();
         for (EffectLedger.Instance instance : ledger.instancesOf(bonus.id())) {
             IEffectKind kind = kinds.get(instance.kindId());
@@ -246,6 +251,15 @@ public final class EffectManager {
                 line.append(" applied");
             } else {
                 line.append(" not applied");
+            }
+            if (entity != null && AttributeEffectKind.ID.equals(instance.kindId())) {
+                String attribute = AttributeParams.problem(instance.spec().params()) == null ? AttributeParams.parse(instance.spec().params()).attribute() : null;
+                if (attribute != null) {
+                    net.minecraft.entity.ai.attributes.IAttributeInstance live = entity.getAttributeMap().getAttributeInstanceByName(attribute);
+                    if (live != null) {
+                        line.append(" now ").append(AttributeParams.formatAmount(live.getAttributeValue()));
+                    }
+                }
             }
             line.append(" [").append(instance.id()).append(']');
             lines.add(line.toString());

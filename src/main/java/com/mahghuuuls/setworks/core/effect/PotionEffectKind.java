@@ -12,7 +12,9 @@ import java.util.Map;
 
 /**
  * The built-in potion effect: a short effect ({@link PotionSignature#DURATION_TICKS} ticks) that is
- * renewed every {@link PotionSignature#REFRESH_INTERVAL_TICKS} ticks while the bonus is active.
+ * checked every {@link PotionSignature#REFRESH_INTERVAL_TICKS} ticks while the bonus is active and
+ * topped up only when it has run down to {@link PotionSignature#TOP_UP_BELOW_TICKS} ticks, so the
+ * countdown runs long enough between top-ups for periodic potions to pulse at the vanilla rate.
  * Vanilla merges effects of one potion by keeping the higher amplifier, so between Setworks
  * sources the highest level wins. On withdrawal the effect is removed only when it still matches
  * the Setworks signature; a longer effect from another source stays. Vanilla copies the particle
@@ -62,7 +64,12 @@ public final class PotionEffectKind implements IEffectKind {
 
     @Override
     public void refresh(EntityPlayerMP player, String instanceId, Map<String, String> params) {
-        renew(player, PotionSignature.parse(params));
+        PotionSignature.Params parsed = PotionSignature.parse(params);
+        PotionEffect current = player.getActivePotionEffect(require(parsed.potionId()));
+        // A lower Setworks level under a higher one sees the higher effect here and leaves it alone; vanilla would ignore the re-add anyway.
+        if (PotionSignature.needsTopUp(current != null, current == null ? 0 : current.getDuration())) {
+            renew(player, parsed);
+        }
     }
 
     @Override

@@ -39,15 +39,41 @@ class EffectRulesTest {
     @Test
     void potionSignatureRemovesOnlyItsOwnShortEffect() {
         int speedOne = 0;
-        assertTrue(PotionSignature.shouldRemove(speedOne, 0, 300), "fresh own effect");
+        assertTrue(PotionSignature.shouldRemove(speedOne, 0, 330), "fresh own effect");
+        assertTrue(PotionSignature.shouldRemove(speedOne, 0, 300), "own effect part way down");
         assertTrue(PotionSignature.shouldRemove(speedOne, 0, 1), "nearly expired own effect");
-        assertFalse(PotionSignature.shouldRemove(speedOne, 0, 301), "a longer effect belongs to someone else");
+        assertFalse(PotionSignature.shouldRemove(speedOne, 0, 331), "a longer effect belongs to someone else");
         assertFalse(PotionSignature.shouldRemove(speedOne, 0, 9600), "an eight-minute drunk potion stays");
         assertFalse(PotionSignature.shouldRemove(speedOne, 1, 300), "a stronger effect stays");
         assertFalse(PotionSignature.shouldRemove(1, 0, 300), "a weaker effect is not ours either");
-        assertEquals(300, PotionSignature.DURATION_TICKS);
+        assertEquals(330, PotionSignature.DURATION_TICKS);
         assertEquals(20, PotionSignature.REFRESH_INTERVAL_TICKS);
-        assertTrue(PotionSignature.DURATION_TICKS - PotionSignature.REFRESH_INTERVAL_TICKS > 200, "no HUD blink between refreshes");
+        assertEquals(230, PotionSignature.TOP_UP_BELOW_TICKS);
+        assertTrue(PotionSignature.TOP_UP_BELOW_TICKS > 200, "no HUD blink before a top-up");
+    }
+
+    @Test
+    void topUpWaitsForTheFloorSoPeriodicPotionsPulseAtTheVanillaRate() {
+        assertTrue(PotionSignature.needsTopUp(false, 0), "absent effect");
+        assertFalse(PotionSignature.needsTopUp(true, 330));
+        assertFalse(PotionSignature.needsTopUp(true, 231));
+        assertTrue(PotionSignature.needsTopUp(true, 230));
+        assertTrue(PotionSignature.needsTopUp(true, 1));
+        // The countdown from the top-up value down to the floor is one uninterrupted window; vanilla pulses
+        // Regeneration when the duration is a multiple of 50 and Poison at 25, checked before counting down.
+        int window = PotionSignature.DURATION_TICKS - PotionSignature.TOP_UP_BELOW_TICKS;
+        assertEquals(100, window);
+        int regeneration = 0, poison = 0;
+        for (int duration = PotionSignature.DURATION_TICKS; duration > PotionSignature.TOP_UP_BELOW_TICKS; duration--) {
+            if (duration % 50 == 0) regeneration++;
+            if (duration % 25 == 0) poison++;
+        }
+        assertEquals(window / 50, regeneration, "two Regeneration pulses per 100 ticks, as vanilla");
+        assertEquals(window / 25, poison, "four Poison pulses per 100 ticks, as vanilla");
+        assertFalse(PotionSignature.DURATION_TICKS % 50 == 0 || PotionSignature.DURATION_TICKS % 25 == 0 || PotionSignature.DURATION_TICKS % 40 == 0,
+                "a top-up itself must not pulse");
+        // The old model reset to 300 every 20 ticks: 300 is a multiple of 50, so every reset pulsed.
+        assertEquals(0, 300 % 50);
     }
 
     @Test
@@ -77,6 +103,11 @@ class EffectRulesTest {
         AttributeParams speed = AttributeParams.parse(map("attribute", "generic.movementSpeed", "amount", "0.1", "operation", "MULTIPLY_TOTAL"));
         assertEquals(AttributeParams.MULTIPLY_TOTAL, speed.operation());
         assertEquals("generic.movementSpeed multiply_total 0.1", speed.describe());
+        assertEquals("0.11", AttributeParams.formatAmount(0.11000000000000001));
+        assertEquals("17", AttributeParams.formatAmount(17.0));
+        assertEquals("0.1", AttributeParams.formatAmount(0.1));
+        assertEquals("20", AttributeParams.formatAmount(20.000000000000004), "no dangling point");
+        assertEquals("0", AttributeParams.formatAmount(0.00001));
         assertEquals(AttributeParams.MULTIPLY_BASE, AttributeParams.parse(map("attribute", "a", "amount", "-1.5", "operation", "multiply_base")).operation());
         assertNull(AttributeParams.problem(map("attribute", "generic.armor", "amount", "2", "operation", "add")));
         assertNotNull(AttributeParams.problem(map("attribute", "generic.armor", "amount", "2", "operation", "times")));

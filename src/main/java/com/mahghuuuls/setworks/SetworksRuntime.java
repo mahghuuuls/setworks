@@ -131,7 +131,9 @@ public final class SetworksRuntime implements SetworksApi.Registrar {
         return new InspectReport.BonusDetails() {
             @Override
             public List<String> effectLines(java.util.UUID player, BonusDefinition bonus) {
-                return currentEffects.effectLines(player, bonus);
+                net.minecraft.server.MinecraftServer server = net.minecraftforge.fml.common.FMLCommonHandler.instance().getMinecraftServerInstance();
+                net.minecraft.entity.player.EntityPlayerMP entity = server == null ? null : server.getPlayerList().getPlayerByUUID(player);
+                return currentEffects.effectLines(player, bonus, entity);
             }
 
             @Override

@@ -61,11 +61,19 @@ public final class AttributeParams {
         return attribute + " " + operationName() + " " + formatAmount(amount);
     }
 
-    static String formatAmount(double value) {
+    /** Whole numbers without a decimal point; others with at most four decimals. */
+    public static String formatAmount(double value) {
         if (value == Math.rint(value) && Math.abs(value) < 1e15) {
             return Long.toString((long) value);
         }
-        return Double.toString(value);
+        String text = String.format(java.util.Locale.ROOT, "%.4f", value);
+        while (text.endsWith("0")) {
+            text = text.substring(0, text.length() - 1);
+        }
+        if (text.endsWith(".")) {
+            text = text.substring(0, text.length() - 1);
+        }
+        return text;
     }
 
     /** Parses the parameters or throws {@link IllegalArgumentException} with the problem. */

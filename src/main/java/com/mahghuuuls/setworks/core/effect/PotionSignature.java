@@ -3,18 +3,30 @@ package com.mahghuuuls.setworks.core.effect;
 import java.util.Map;
 
 /**
- * The shape of a potion effect Setworks owns: 300 ticks, renewed every 20 ticks, not ambient. A
- * potion effect has no owner field, so on withdrawal Setworks removes the player's effect only
- * when it still looks like its own: same amplifier and at most 300 ticks left. A longer effect, a
- * drunk potion for example, is left alone; a Setworks effect whose removal is ever missed expires
- * by itself. Between refreshes the duration stays above 200 ticks, so the HUD does not blink.
+ * The shape of a potion effect Setworks owns: 330 ticks, not ambient, checked every 20 ticks and
+ * topped up to 330 only when 230 ticks or fewer remain. The countdown therefore runs 100 ticks
+ * uninterrupted between top-ups, so a periodic potion (Regeneration pulses when the duration is a
+ * multiple of 50, Poison of 25) pulses at the vanilla rate; a top-up that reset the duration every
+ * second would pulse every second. 330 is not a multiple of 50, 25, or 40, so a top-up never
+ * pulses by itself, and the duration never drops below 211 (a check lands up to 19 ticks after the
+ * floor is reached), so the HUD does not blink (it blinks at 200 or less). A potion effect has no owner field, so on withdrawal Setworks removes the
+ * player's effect only when it still looks like its own: same amplifier and at most 330 ticks left.
+ * A longer effect, a drunk potion for example, is left alone; a Setworks effect whose removal is
+ * ever missed expires by itself.
  */
 public final class PotionSignature {
 
-    public static final int DURATION_TICKS = 300;
+    public static final int DURATION_TICKS = 330;
     public static final int REFRESH_INTERVAL_TICKS = 20;
+    /** A check tops the effect up only when this many ticks or fewer remain. */
+    public static final int TOP_UP_BELOW_TICKS = 230;
 
     private PotionSignature() {
+    }
+
+    /** True when a check must top the effect up: it is absent, or it has run down to the floor. */
+    public static boolean needsTopUp(boolean present, int currentDuration) {
+        return !present || currentDuration <= TOP_UP_BELOW_TICKS;
     }
 
     /** True when the player's current effect is the one Setworks applied and may be removed. */
