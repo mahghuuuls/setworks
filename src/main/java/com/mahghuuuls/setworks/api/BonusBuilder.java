@@ -83,8 +83,8 @@ public final class BonusBuilder {
         return this;
     }
 
-    /** A condition object supplied directly (Java or a script lambda); {@code label} names it in diagnostics. */
-    public BonusBuilder condition(String label, Object conditionInstance) {
+    /** A condition supplied directly (Java or a script lambda); {@code label} names it in diagnostics. */
+    public BonusBuilder condition(String label, ICondition conditionInstance) {
         if (conditionInstance == null) {
             throw new IllegalArgumentException("condition must not be null");
         }

@@ -37,7 +37,9 @@ class EvaluatorTest {
         public boolean oreHasEntries(String oreName) { return true; }
         public boolean locationExists(String locationId) { return true; }
         public boolean effectKindExists(String kindId) { return true; }
+        public String effectProblem(com.mahghuuuls.setworks.api.definition.EffectSpec effect) { return null; }
         public boolean conditionKindExists(String kindId) { return true; }
+        public String conditionProblem(com.mahghuuuls.setworks.api.definition.ConditionSpec condition) { return null; }
         public boolean exactNbtParses(String text) { return true; }
     };
 
@@ -251,7 +253,7 @@ class EvaluatorTest {
         registry.freeze(ANYTHING);
         final boolean[] pass = {false};
         ConditionEvaluator conditions = new ConditionEvaluator() {
-            public Result evaluate(com.mahghuuuls.setworks.api.definition.BonusDefinition bonus, Object player) {
+            public Result evaluate(com.mahghuuuls.setworks.api.definition.BonusDefinition bonus, Object player, com.mahghuuuls.setworks.api.IConditionContext context) {
                 return pass[0] ? Result.pass() : new Result(Outcome.FAIL, "t:never");
             }
         };
@@ -274,6 +276,53 @@ class EvaluatorTest {
         Evaluator.Result stable = evaluator.evaluate(due.state(), changed(leather(4), 7, "hotbar"));
         assertEquals(BonusState.SUPERSEDED, stable.state().bonusState("t:leather2"));
         assertTrue(stable.transitions().isEmpty());
+    }
+
+    @Test
+    void conditionsRunOnEquipmentChangeAndOtherwiseOnTheDefaultInterval() {
+        DefinitionRegistry registry = new DefinitionRegistry();
+        registry.registerSet(SetBuilder.set("t:iron").armor(ItemFilter.item("a:ih"), ItemFilter.item("a:ic"), ItemFilter.item("a:il"), ItemFilter.item("a:if")).build(), SRC, false);
+        registry.registerBonus(BonusBuilder.bonus("t:guarded").requires("t:iron", 2).description("g")
+                .condition("t:switch", Collections.<String, String>emptyMap()).build(), SRC, false);
+        registry.freeze(ANYTHING);
+        final int[] calls = {0};
+        final boolean[] pass = {false};
+        ConditionEvaluator conditions = new ConditionEvaluator() {
+            public Result evaluate(com.mahghuuuls.setworks.api.definition.BonusDefinition bonus, Object player, com.mahghuuuls.setworks.api.IConditionContext context) {
+                calls[0]++;
+                assertEquals(2, context.pieceCount("t:iron"), "the context carries the counts of this evaluation");
+                return pass[0] ? Result.pass() : new Result(Outcome.FAIL, "t:switch");
+            }
+        };
+        Evaluator evaluator = new Evaluator(new CompiledDefinitions(registry.definitions()), conditions, 20);
+        // Login at tick 100: evaluated once, due again at 120 (the default interval).
+        Evaluator.Result start = evaluator.evaluate(PlayerSetState.empty(PLAYER, "p"), rebuild(iron(2), 100));
+        assertEquals(1, calls[0]);
+        assertEquals(BonusState.CONDITION_FAILED, start.state().bonusState("t:guarded"));
+        assertEquals(120, evaluator.nextConditionDue(start.state(), 100));
+        // A change in a location the set does not reference, before the interval: not evaluated.
+        Evaluator.Result unrelated = evaluator.evaluate(start.state(), changed(iron(2), 105, "hotbar"));
+        assertEquals(1, calls[0]);
+        assertTrue(unrelated.transitions().isEmpty());
+        // A change in a referenced location: evaluated right away even though the interval is not over.
+        pass[0] = true;
+        Evaluator.Result touched = evaluator.evaluate(unrelated.state(), changed(iron(2), 106, "feet"));
+        assertEquals(2, calls[0]);
+        assertTrue(touched.state().isActive("t:guarded"));
+        assertEquals(126, evaluator.nextConditionDue(touched.state(), 106));
+        // Due by time alone: the flip back is seen at the interval, with the condition named in the reason.
+        pass[0] = false;
+        assertTrue(evaluator.evaluate(touched.state(), changed(iron(2), 125, "hotbar")).transitions().isEmpty());
+        assertEquals(2, calls[0]);
+        Evaluator.Result due = evaluator.evaluate(touched.state(), changed(iron(2), 126, "hotbar"));
+        assertEquals(3, calls[0]);
+        assertEquals(1, due.transitions().size());
+        assertEquals(BonusState.CONDITION_FAILED, due.transitions().get(0).to());
+        assertEquals("t:switch", due.transitions().get(0).detail());
+        // A bonus without equipment is not scheduled at all.
+        Evaluator.Result bare = evaluator.evaluate(due.state(), changed(iron(1), 127, "feet"));
+        assertEquals(3, calls[0]);
+        assertEquals(Long.MAX_VALUE, evaluator.nextConditionDue(bare.state(), 127));
     }
 
     private static int countActivations(List<Transition> transitions) {

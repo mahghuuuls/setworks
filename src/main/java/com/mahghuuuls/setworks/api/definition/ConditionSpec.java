@@ -1,5 +1,7 @@
 package com.mahghuuuls.setworks.api.definition;
 
+import com.mahghuuuls.setworks.api.ICondition;
+
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -13,13 +15,13 @@ public final class ConditionSpec {
 
     private final String kindId;
     private final Map<String, String> params;
-    private final Object instance;
+    private final ICondition instance;
 
     public ConditionSpec(String kindId, Map<String, String> params) {
         this(kindId, params, null);
     }
 
-    public ConditionSpec(String kindId, Map<String, String> params, Object instance) {
+    public ConditionSpec(String kindId, Map<String, String> params, ICondition instance) {
         this.kindId = kindId;
         this.params = Collections.unmodifiableMap(new LinkedHashMap<String, String>(params));
         this.instance = instance;
@@ -33,8 +35,8 @@ public final class ConditionSpec {
         return params;
     }
 
-    /** A directly supplied condition object, or {@code null} when the kind registry creates it. */
-    public Object instance() {
+    /** A directly supplied condition, or {@code null} when the kind registry creates it from the parameters. */
+    public ICondition instance() {
         return instance;
     }
 

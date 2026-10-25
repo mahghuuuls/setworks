@@ -471,12 +471,27 @@ public final class DefinitionRegistry {
                     report.add(id, "unknown-effect-kind", "effect kind " + effect.kindId()
                             + " is not registered (is the addon that provides it installed?)", source);
                     ok = false;
+                    continue;
+                }
+                String problem = context.effectProblem(effect);
+                if (problem != null) {
+                    report.add(id, "invalid-effect", "effect " + effect.kindId() + " " + effect.params() + ": " + problem, source);
+                    ok = false;
                 }
             }
             for (ConditionSpec condition : bonus.conditions()) {
-                if (condition.instance() == null && !context.conditionKindExists(condition.kindId())) {
+                if (condition.instance() != null) {
+                    continue;
+                }
+                if (!context.conditionKindExists(condition.kindId())) {
                     report.add(id, "unknown-condition-kind", "condition kind " + condition.kindId()
                             + " is not registered (is the addon that provides it installed?)", source);
+                    ok = false;
+                    continue;
+                }
+                String problem = context.conditionProblem(condition);
+                if (problem != null) {
+                    report.add(id, "invalid-condition", "condition " + condition.kindId() + " " + condition.params() + ": " + problem, source);
                     ok = false;
                 }
             }

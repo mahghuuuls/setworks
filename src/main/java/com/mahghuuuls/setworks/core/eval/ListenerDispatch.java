@@ -47,6 +47,11 @@ public final class ListenerDispatch implements TransitionSink, com.mahghuuuls.se
     }
 
     @Override
+    public void onRebuild(EntityPlayerMP player) {
+        // A rebuild re-emits activations; listeners see those.
+    }
+
+    @Override
     public void onTransitions(EntityPlayerMP player, PlayerSetState state, List<Transition> transitions) {
         for (Transition transition : transitions) {
             if (!transition.activated() && !transition.deactivated()) {

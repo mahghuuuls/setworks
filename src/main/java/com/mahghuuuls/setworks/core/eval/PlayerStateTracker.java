@@ -112,7 +112,7 @@ public final class PlayerStateTracker {
         }
         for (Map.Entry<String, PlayerSetState.BonusEntry> bonus : entry.state.bonuses().entrySet()) {
             if (bonus.getValue().isActive()) {
-                diagnostic.transition(player.getName(), bonus.getKey(), "inactive", "logout");
+                diagnostic.transition(player.getName(), bonus.getKey(), "inactive", "logout", player.world.getTotalWorldTime());
             }
         }
     }
@@ -218,8 +218,8 @@ public final class PlayerStateTracker {
             entry = new Entry(PlayerSetState.empty(player.getUniqueID(), player.getName()), new LocationView(referencedLocations));
             entries.put(player.getUniqueID(), entry);
         } else {
-            // The old entity's effects are gone (respawn) or were resent by Forge (dimension change); the
-            // effect ledger reconciles against the attribute map before re-applying.
+            // The old entity's effects are gone (respawn) or still on the same entity (dimension change);
+            // the sinks are told before the evaluation so the effect ledger can reconcile and re-apply.
             entry.state = PlayerSetState.empty(player.getUniqueID(), player.getName());
             entry.view.reset();
             entry.pending.clear();
@@ -229,6 +229,9 @@ public final class PlayerStateTracker {
     }
 
     private void rebuildEvaluate(EntityPlayerMP player, Entry entry) {
+        for (TransitionSink sink : sinks) {
+            sink.onRebuild(player);
+        }
         entry.view.scan(player);
         evaluate(player, entry, Collections.<String>emptySet(), true, diagnostic.isEnabled());
     }
@@ -259,7 +262,7 @@ public final class PlayerStateTracker {
             diagnostic.transition(player.getName(), transition.bonusId(),
                     transition.to().isActive() ? "active" : "inactive",
                     transition.to().isActive() ? "requirements met" : transition.to().reasonText()
-                            + (transition.detail().isEmpty() ? "" : " " + transition.detail()));
+                            + (transition.detail().isEmpty() ? "" : " " + transition.detail()), input.tick());
         }
         for (TransitionSink sink : sinks) {
             sink.onTransitions(player, result.state(), result.transitions());

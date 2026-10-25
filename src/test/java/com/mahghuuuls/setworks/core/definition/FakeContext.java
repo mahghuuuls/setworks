@@ -36,8 +36,24 @@ final class FakeContext implements ValidationContext {
     }
 
     @Override
+    public String effectProblem(com.mahghuuuls.setworks.api.definition.EffectSpec effect) {
+        if ("setworks:attribute".equals(effect.kindId())) {
+            return com.mahghuuuls.setworks.core.effect.AttributeParams.problem(effect.params());
+        }
+        return null;
+    }
+
+    @Override
     public boolean conditionKindExists(String kindId) {
         return conditionKinds.contains(kindId);
+    }
+
+    @Override
+    public String conditionProblem(com.mahghuuuls.setworks.api.definition.ConditionSpec condition) {
+        if ("setworks:health_below".equals(condition.kindId())) {
+            return new com.mahghuuuls.setworks.core.eval.condition.HealthBelowKind().validate(condition.params());
+        }
+        return null;
     }
 
     @Override

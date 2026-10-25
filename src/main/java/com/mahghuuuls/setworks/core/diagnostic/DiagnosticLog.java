@@ -32,11 +32,12 @@ public final class DiagnosticLog {
                 enabledSets, totalSets, enabledBonuses, totalBonuses, pieces, errors, scriptFailures, locations, sources);
     }
 
-    public void transition(String player, String bonusId, String state, String reason) {
+    /** One bonus changed state for a player; the world tick lets a reader measure reaction time against the toolkit's marks. */
+    public void transition(String player, String bonusId, String state, String reason, long tick) {
         if (!enabled) {
             return;
         }
-        logger.info(PREFIX + "transition player={} bonus={} state={} reason={}", player, bonusId, state, reason);
+        logger.info(PREFIX + "transition player={} bonus={} state={} reason={} tick={}", player, bonusId, state, reason, tick);
     }
 
     public void line(String message) {

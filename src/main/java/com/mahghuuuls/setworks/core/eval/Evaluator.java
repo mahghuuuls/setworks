@@ -1,6 +1,7 @@
 package com.mahghuuuls.setworks.core.eval;
 
 import com.mahghuuuls.setworks.api.BonusState;
+import com.mahghuuuls.setworks.api.IConditionContext;
 import com.mahghuuuls.setworks.api.ThresholdMode;
 import com.mahghuuuls.setworks.api.definition.BonusDefinition;
 import com.mahghuuuls.setworks.api.definition.SetRequirement;
@@ -126,7 +127,7 @@ public final class Evaluator {
                 detail = "";
                 conditionTicks.put(bonus.id(), lastTick);
             } else if (due) {
-                ConditionEvaluator.Result result = conditions.evaluate(bonus, input.player());
+                ConditionEvaluator.Result result = conditions.evaluate(bonus, input.player(), new CountContext(bonus.id(), input.tick(), setStates));
                 switch (result.outcome()) {
                     case PASS:
                         state = BonusState.ACTIVE;
@@ -198,6 +199,35 @@ public final class Evaluator {
             }
         }
         return new Result(new PlayerSetState(playerId, playerName, setStates, entries), transitions);
+    }
+
+    /** What a condition may read: the counts of this evaluation, the bonus, the tick. */
+    private static final class CountContext implements IConditionContext {
+        private final String bonusId;
+        private final long tick;
+        private final Map<String, PlayerSetState.SetState> counts;
+
+        CountContext(String bonusId, long tick, Map<String, PlayerSetState.SetState> counts) {
+            this.bonusId = bonusId;
+            this.tick = tick;
+            this.counts = counts;
+        }
+
+        @Override
+        public String bonusId() {
+            return bonusId;
+        }
+
+        @Override
+        public int pieceCount(String setId) {
+            PlayerSetState.SetState state = counts.get(setId);
+            return state == null ? 0 : state.count();
+        }
+
+        @Override
+        public long tick() {
+            return tick;
+        }
     }
 
     private int interval(BonusDefinition bonus) {

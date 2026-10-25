@@ -96,7 +96,7 @@ public final class SetworksCommand extends CommandBase {
         if (state == null) {
             return Arrays.asList("no state for " + name + " (fake player, or not evaluated yet)");
         }
-        return InspectReport.lines(state, tracker.evaluator().definitions());
+        return InspectReport.lines(state, tracker.evaluator().definitions(), SetworksMod.runtime().bonusDetails());
     }
 
     private static List<String> list() {

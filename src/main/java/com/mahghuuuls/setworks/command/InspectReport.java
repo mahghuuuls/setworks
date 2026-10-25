@@ -9,14 +9,38 @@ import com.mahghuuuls.setworks.core.match.SlotCandidate;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /** Renders one player's state for the inspect command. Pure text; tested without a game. */
 public final class InspectReport {
+
+    /** Supplies the per-effect and per-condition lines of a bonus; the runtime's manager and evaluator in the game, nothing in tests. */
+    public interface BonusDetails {
+        List<String> effectLines(UUID player, BonusDefinition bonus);
+
+        List<String> conditionLines(BonusDefinition bonus);
+    }
+
+    public static final BonusDetails NO_DETAILS = new BonusDetails() {
+        @Override
+        public List<String> effectLines(UUID player, BonusDefinition bonus) {
+            return null;
+        }
+
+        @Override
+        public List<String> conditionLines(BonusDefinition bonus) {
+            return null;
+        }
+    };
 
     private InspectReport() {
     }
 
     public static List<String> lines(PlayerSetState state, CompiledDefinitions definitions) {
+        return lines(state, definitions, NO_DETAILS);
+    }
+
+    public static List<String> lines(PlayerSetState state, CompiledDefinitions definitions, BonusDetails details) {
         List<String> lines = new ArrayList<String>();
         lines.add("setworks state of " + state.playerName());
         for (CompiledSet set : definitions.sets()) {
@@ -55,9 +79,23 @@ public final class InspectReport {
             }
             lines.add(line.toString());
             if (!bonus.conditions().isEmpty()) {
-                lines.add("  conditions: " + bonus.conditions());
+                List<String> conditionLines = details.conditionLines(bonus);
+                if (conditionLines == null) {
+                    lines.add("  conditions: " + bonus.conditions());
+                } else {
+                    lines.addAll(conditionLines);
+                }
             }
-            lines.add("  effects: " + (bonus.effects().isEmpty() ? "none (scripted)" : bonus.effects().toString()));
+            if (bonus.effects().isEmpty()) {
+                lines.add("  effects: none (scripted)");
+                continue;
+            }
+            List<String> effectLines = details.effectLines(state.playerId(), bonus);
+            if (effectLines == null) {
+                lines.add("  effects: " + bonus.effects());
+            } else {
+                lines.addAll(effectLines);
+            }
         }
         return lines;
     }

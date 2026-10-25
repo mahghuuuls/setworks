@@ -55,6 +55,7 @@ public class SetworksMod {
     public void preInit(FMLPreInitializationEvent event) {
         SetworksConfig config = SetworksConfig.load(event.getSuggestedConfigurationFile(), LOGGER);
         runtime.applyConfig(config);
+        runtime.registerBuiltinKinds();
         if (config.enableExampleSets()) {
             ExampleSets.register();
         }
@@ -72,6 +73,8 @@ public class SetworksMod {
     @Mod.EventHandler
     public void loadComplete(FMLLoadCompleteEvent event) {
         runtime.locations().freeze();
+        runtime.effectKinds().freeze();
+        runtime.conditionKinds().freeze();
         ValidationReport report = runtime.registry().freeze(runtime.validationContext());
         FrozenDefinitions definitions = runtime.registry().definitions();
         int pieces = 0;

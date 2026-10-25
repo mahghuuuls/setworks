@@ -1,21 +1,35 @@
 package com.mahghuuuls.setworks;
 
+import com.mahghuuuls.setworks.api.BonusListener;
 import com.mahghuuuls.setworks.api.BonusModification;
 import com.mahghuuuls.setworks.api.DefinitionSource;
+import com.mahghuuuls.setworks.api.IConditionKind;
+import com.mahghuuuls.setworks.api.IEffectKind;
 import com.mahghuuuls.setworks.api.ILocation;
 import com.mahghuuuls.setworks.api.ItemFilter;
 import com.mahghuuuls.setworks.api.RegistrationResult;
 import com.mahghuuuls.setworks.api.SetworksApi;
 import com.mahghuuuls.setworks.api.definition.BonusDefinition;
+import com.mahghuuuls.setworks.api.definition.ConditionSpec;
+import com.mahghuuuls.setworks.api.definition.EffectSpec;
 import com.mahghuuuls.setworks.api.definition.SetDefinition;
+import com.mahghuuuls.setworks.command.InspectReport;
 import com.mahghuuuls.setworks.config.SetworksConfig;
 import com.mahghuuuls.setworks.core.definition.DefinitionRegistry;
 import com.mahghuuuls.setworks.core.definition.ValidationContext;
 import com.mahghuuuls.setworks.core.diagnostic.DiagnosticLog;
 import com.mahghuuuls.setworks.core.diagnostic.Timings;
-import com.mahghuuuls.setworks.core.eval.ConditionEvaluator;
-import com.mahghuuuls.setworks.api.BonusListener;
+import com.mahghuuuls.setworks.core.effect.AttributeEffectKind;
+import com.mahghuuuls.setworks.core.effect.EffectKindRegistry;
+import com.mahghuuuls.setworks.core.effect.EffectLedger;
+import com.mahghuuuls.setworks.core.effect.EffectManager;
+import com.mahghuuuls.setworks.core.effect.PotionEffectKind;
+import com.mahghuuuls.setworks.core.eval.ConditionKindRegistry;
+import com.mahghuuuls.setworks.core.eval.EffectSink;
 import com.mahghuuuls.setworks.core.eval.Evaluator;
+import com.mahghuuuls.setworks.core.eval.KindConditionEvaluator;
+import com.mahghuuuls.setworks.core.eval.condition.HealthBelowKind;
+import com.mahghuuuls.setworks.core.eval.condition.SneakingKind;
 import com.mahghuuuls.setworks.core.eval.ListenerDispatch;
 import com.mahghuuuls.setworks.core.eval.PlayerStateTracker;
 import com.mahghuuuls.setworks.core.eval.QueryService;
@@ -36,6 +50,8 @@ public final class SetworksRuntime implements SetworksApi.Registrar {
 
     private final DefinitionRegistry registry = new DefinitionRegistry();
     private final LocationRegistry locations = new LocationRegistry();
+    private final EffectKindRegistry effectKinds = new EffectKindRegistry();
+    private final ConditionKindRegistry conditionKinds = new ConditionKindRegistry();
     private volatile SetworksConfig config = SetworksConfig.defaults();
     private volatile DiagnosticLog diagnostic = new DiagnosticLog(SetworksMod.LOGGER, false);
 
@@ -61,6 +77,22 @@ public final class SetworksRuntime implements SetworksApi.Registrar {
         return locations;
     }
 
+    public EffectKindRegistry effectKinds() {
+        return effectKinds;
+    }
+
+    public ConditionKindRegistry conditionKinds() {
+        return conditionKinds;
+    }
+
+    /** The built-in effect and condition kinds; called once at pre-initialization. */
+    public void registerBuiltinKinds() {
+        effectKinds.register(new AttributeEffectKind());
+        effectKinds.register(new PotionEffectKind());
+        conditionKinds.register(new HealthBelowKind());
+        conditionKinds.register(new SneakingKind());
+    }
+
     public DiagnosticLog diagnostic() {
         return diagnostic;
     }
@@ -68,6 +100,8 @@ public final class SetworksRuntime implements SetworksApi.Registrar {
     private final Timings timings = new Timings();
     private volatile CompiledDefinitions compiled = CompiledDefinitions.empty();
     private volatile PlayerStateTracker tracker;
+    private volatile EffectManager effects;
+    private volatile KindConditionEvaluator conditions;
 
     public CompiledDefinitions compiled() {
         return compiled;
@@ -82,14 +116,44 @@ public final class SetworksRuntime implements SetworksApi.Registrar {
         return timings;
     }
 
+    /** The effect manager, or {@code null} before load complete. */
+    public EffectManager effects() {
+        return effects;
+    }
+
+    /** The per-bonus effect and condition lines for the inspect command; nothing before load complete. */
+    public InspectReport.BonusDetails bonusDetails() {
+        final EffectManager currentEffects = effects;
+        final KindConditionEvaluator currentConditions = conditions;
+        if (currentEffects == null || currentConditions == null) {
+            return InspectReport.NO_DETAILS;
+        }
+        return new InspectReport.BonusDetails() {
+            @Override
+            public List<String> effectLines(java.util.UUID player, BonusDefinition bonus) {
+                return currentEffects.effectLines(player, bonus);
+            }
+
+            @Override
+            public List<String> conditionLines(BonusDefinition bonus) {
+                return currentConditions.conditionLines(bonus);
+            }
+        };
+    }
+
     /**
      * Compiles the frozen definitions and starts evaluation: called once at load complete after the
      * freeze. Registers the tracker on the Forge bus and installs the query service.
      */
     public void startEvaluation() {
         compiled = new CompiledDefinitions(registry.definitions());
-        Evaluator evaluator = new Evaluator(compiled, ConditionEvaluator.NONE, config.conditionIntervalTicks());
+        conditions = new KindConditionEvaluator(compiled, conditionKinds, SetworksMod.LOGGER);
+        Evaluator evaluator = new Evaluator(compiled, conditions, config.conditionIntervalTicks());
         tracker = new PlayerStateTracker(evaluator, locations, diagnostic, timings);
+        // Effects first, then listeners and events: a listener sees the modifier already in place.
+        effects = new EffectManager(new EffectLedger(registry.definitions()), effectKinds, SetworksMod.LOGGER, diagnostic);
+        tracker.addSink(new EffectSink(effects));
+        MinecraftForge.EVENT_BUS.register(effects);
         ListenerDispatch dispatch = new ListenerDispatch(compiled, SetworksMod.LOGGER);
         for (BonusListener listener : SetworksApi.drainEarlyListeners()) {
             dispatch.add(listener);
@@ -100,7 +164,7 @@ public final class SetworksRuntime implements SetworksApi.Registrar {
         SetworksApi.installQuery(new QueryService(tracker, compiled));
     }
 
-    /** The context validation uses against the real game. Effect and condition kinds are registered by later work. */
+    /** The context validation uses against the real game. */
     public ValidationContext validationContext() {
         return new ValidationContext() {
             @Override
@@ -121,12 +185,38 @@ public final class SetworksRuntime implements SetworksApi.Registrar {
 
             @Override
             public boolean effectKindExists(String kindId) {
-                return false;
+                return effectKinds.exists(kindId);
+            }
+
+            @Override
+            public String effectProblem(EffectSpec effect) {
+                IEffectKind kind = effectKinds.get(effect.kindId());
+                if (kind == null) {
+                    return null;
+                }
+                try {
+                    return kind.validate(effect.params());
+                } catch (RuntimeException e) {
+                    return "validation threw " + e;
+                }
             }
 
             @Override
             public boolean conditionKindExists(String kindId) {
-                return false;
+                return conditionKinds.exists(kindId);
+            }
+
+            @Override
+            public String conditionProblem(ConditionSpec condition) {
+                IConditionKind kind = conditionKinds.get(condition.kindId());
+                if (kind == null) {
+                    return null;
+                }
+                try {
+                    return kind.validate(condition.params());
+                } catch (RuntimeException e) {
+                    return "validation threw " + e;
+                }
             }
 
             @Override
@@ -185,6 +275,16 @@ public final class SetworksRuntime implements SetworksApi.Registrar {
     @Override
     public RegistrationResult registerLocation(ILocation location) {
         return logged(locations.register(location), location == null ? null : location.source());
+    }
+
+    @Override
+    public RegistrationResult registerEffectKind(IEffectKind kind) {
+        return logged(effectKinds.register(kind), null);
+    }
+
+    @Override
+    public RegistrationResult registerConditionKind(IConditionKind kind) {
+        return logged(conditionKinds.register(kind), null);
     }
 
     @Override

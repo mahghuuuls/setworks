@@ -28,6 +28,10 @@ public final class SetworksApi {
 
         RegistrationResult registerLocation(ILocation location);
 
+        RegistrationResult registerEffectKind(IEffectKind kind);
+
+        RegistrationResult registerConditionKind(IConditionKind kind);
+
         boolean isFrozen();
     }
 
@@ -88,6 +92,16 @@ public final class SetworksApi {
     /** Registers an equipment location. Addons call this during startup. */
     public static RegistrationResult registerLocation(ILocation location) {
         return service().registerLocation(location);
+    }
+
+    /** Registers an effect kind. Addons call this during startup, before the definitions freeze at load complete. */
+    public static RegistrationResult registerEffectKind(IEffectKind kind) {
+        return service().registerEffectKind(kind);
+    }
+
+    /** Registers a condition kind. Addons call this during startup, before the definitions freeze at load complete. */
+    public static RegistrationResult registerConditionKind(IConditionKind kind) {
+        return service().registerConditionKind(kind);
     }
 
     private static volatile ISetworksQuery query;
@@ -229,6 +243,16 @@ public final class SetworksApi {
 
         @Override
         public RegistrationResult registerLocation(ILocation location) {
+            return notLoaded();
+        }
+
+        @Override
+        public RegistrationResult registerEffectKind(IEffectKind kind) {
+            return notLoaded();
+        }
+
+        @Override
+        public RegistrationResult registerConditionKind(IConditionKind kind) {
             return notLoaded();
         }
 
