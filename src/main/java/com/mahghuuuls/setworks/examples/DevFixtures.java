@@ -195,6 +195,15 @@ public final class DevFixtures {
                 .requiresAll("setworks:iron_armor")
                 .potion("minecraft:speed", 2, false)
                 .description("Fixture Speed Two"), SOURCE);
+        // Description given as a language key: the client translates it from the mod's language file.
+        SetworksApi.registerBonus(BonusBuilder.bonus("setworks:fixture_keyed")
+                .requires("setworks:iron_armor", 1)
+                .description("setworks.fixture.keyed.description"), SOURCE);
+        // No description: the client shows the generated one ("+2 Armor, ${effect.moveSpeed} II" translated).
+        SetworksApi.registerBonus(BonusBuilder.bonus("setworks:fixture_generated")
+                .requires("setworks:iron_armor", 2)
+                .attribute("generic.armor", 2, "add")
+                .potion("minecraft:speed", 2, false), SOURCE);
         // Two conditions: both must pass; the first failing one names itself in the reason.
         SetworksApi.registerBonus(BonusBuilder.bonus("setworks:fixture_two_conditions")
                 .requires("setworks:iron_armor", 1)

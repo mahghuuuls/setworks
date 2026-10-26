@@ -35,6 +35,12 @@ import com.mahghuuuls.setworks.core.eval.PlayerStateTracker;
 import com.mahghuuuls.setworks.core.eval.QueryService;
 import com.mahghuuuls.setworks.core.location.LocationRegistry;
 import com.mahghuuuls.setworks.core.match.CompiledDefinitions;
+import com.mahghuuuls.setworks.network.DescriptionGenerator;
+import com.mahghuuuls.setworks.network.ServerStateSink;
+import com.mahghuuuls.setworks.network.SnapshotBuilder;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.potion.Potion;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
@@ -162,8 +168,44 @@ public final class SetworksRuntime implements SetworksApi.Registrar {
         }
         SetworksApi.installListeners(dispatch);
         tracker.addSink(dispatch);
+        ServerStateSink stateSink = new ServerStateSink(registry.definitions(), snapshotBuilder(), diagnostic);
+        stateSink.prepare();
+        tracker.setStateSink(stateSink);
+        tracker.setDiscoverySink(stateSink);
         MinecraftForge.EVENT_BUS.register(tracker);
         SetworksApi.installQuery(new QueryService(tracker, compiled));
+    }
+
+    /** Builds display snapshots against the real registries: item translation keys, potion names, addon describe texts. */
+    private SnapshotBuilder snapshotBuilder() {
+        DescriptionGenerator descriptions = new DescriptionGenerator(new DescriptionGenerator.PotionNames() {
+            @Override
+            public String translationKey(String potionId) {
+                ResourceLocation key = tryParse(potionId);
+                Potion potion = key == null ? null : ForgeRegistries.POTIONS.getValue(key);
+                return potion == null ? null : potion.getName();
+            }
+        }, new DescriptionGenerator.Kinds() {
+            @Override
+            public IEffectKind kind(String kindId) {
+                return effectKinds.get(kindId);
+            }
+        });
+        return new SnapshotBuilder(descriptions, new SnapshotBuilder.Labels() {
+            @Override
+            public String itemLabel(String itemId, int metadata) {
+                ResourceLocation key = tryParse(itemId);
+                Item item = key == null ? null : ForgeRegistries.ITEMS.getValue(key);
+                if (item == null) {
+                    return null;
+                }
+                try {
+                    return new ItemStack(item, 1, metadata).getTranslationKey() + ".name";
+                } catch (RuntimeException e) {
+                    return null;
+                }
+            }
+        });
     }
 
     /** The context validation uses against the real game. */

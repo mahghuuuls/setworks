@@ -6,9 +6,12 @@ import com.mahghuuuls.setworks.config.SetworksConfig;
 import com.mahghuuuls.setworks.api.definition.SetDefinition;
 import com.mahghuuuls.setworks.core.definition.FrozenDefinitions;
 import com.mahghuuuls.setworks.core.definition.ValidationReport;
+import com.mahghuuuls.setworks.core.discovery.DiscoveryCapabilities;
 import com.mahghuuuls.setworks.core.location.VanillaLocations;
 import com.mahghuuuls.setworks.examples.ExampleSets;
+import com.mahghuuuls.setworks.network.SetworksNetwork;
 import com.mahghuuuls.setworks.proxy.CommonProxy;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLConstructionEvent;
@@ -56,10 +59,12 @@ public class SetworksMod {
         SetworksConfig config = SetworksConfig.load(event.getSuggestedConfigurationFile(), LOGGER);
         runtime.applyConfig(config);
         runtime.registerBuiltinKinds();
+        SetworksNetwork.register();
+        DiscoveryCapabilities.register();
         if (config.enableExampleSets()) {
             ExampleSets.register();
         }
-        proxy.preInit();
+        proxy.preInit(event.getSuggestedConfigurationFile());
         LOGGER.info("{} {} loading (strictValidation={}, conditionIntervalTicks={}, enableExampleSets={}, diagnosticLog={})",
                 Tags.MOD_NAME, Tags.VERSION, config.strictValidation(), config.conditionIntervalTicks(),
                 config.enableExampleSets(), config.diagnosticLog());
@@ -67,6 +72,7 @@ public class SetworksMod {
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
+        MinecraftForge.EVENT_BUS.register(new DiscoveryCapabilities.Events());
         proxy.init();
     }
 

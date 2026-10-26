@@ -2,6 +2,7 @@ package com.mahghuuuls.setworks.core.eval;
 
 import com.mahghuuuls.setworks.api.ILocation;
 import com.mahghuuuls.setworks.core.diagnostic.DiagnosticLog;
+import com.mahghuuuls.setworks.core.discovery.DiscoveryCapabilities;
 import com.mahghuuuls.setworks.core.diagnostic.Timings;
 import com.mahghuuuls.setworks.core.location.LocationRegistry;
 import com.mahghuuuls.setworks.core.location.LocationView;
@@ -53,6 +54,8 @@ public final class PlayerStateTracker {
     private final DiagnosticLog diagnostic;
     private final Timings timings;
     private final List<TransitionSink> sinks = new ArrayList<TransitionSink>();
+    private StateSink stateSink;
+    private DiscoverySink discoverySink;
     private final Map<UUID, Entry> entries = new HashMap<UUID, Entry>();
     private long serverTicks;
 
@@ -72,6 +75,16 @@ public final class PlayerStateTracker {
 
     public void addSink(TransitionSink sink) {
         sinks.add(sink);
+    }
+
+    /** The one receiver of what the client must be told; {@code null} sends nothing. */
+    public void setStateSink(StateSink sink) {
+        this.stateSink = sink;
+    }
+
+    /** Told about first activations of discovered bonuses; {@code null} tells nobody. */
+    public void setDiscoverySink(DiscoverySink sink) {
+        this.discoverySink = sink;
     }
 
     /** The last evaluated state, or {@code null} for an unknown player. */
@@ -94,6 +107,9 @@ public final class PlayerStateTracker {
         }
         Entry entry = new Entry(PlayerSetState.empty(player.getUniqueID(), player.getName()), new LocationView(referencedLocations));
         entries.put(player.getUniqueID(), entry);
+        if (stateSink != null) {
+            stateSink.onJoin(player);
+        }
         rebuildEvaluate(player, entry);
     }
 
@@ -242,6 +258,7 @@ public final class PlayerStateTracker {
         boolean dead = !player.isEntityAlive();
         EvaluationInput input = new EvaluationInput(entry.view.candidates(), changed, rebuild,
                 player.world.getTotalWorldTime(), spectator, dead, player);
+        PlayerSetState before = entry.state;
         Evaluator.Result result = evaluator.evaluate(entry.state, input);
         if (timed) {
             long nanos = System.nanoTime() - start;
@@ -255,7 +272,11 @@ public final class PlayerStateTracker {
         entry.lastSpectator = spectator;
         entry.lastDead = dead;
         entry.nextConditionTick = evaluator.nextConditionDue(result.state(), input.tick());
+        boolean displayChanged = stateSink != null && !PlayerSetState.sameDisplay(before, result.state());
         if (result.transitions().isEmpty()) {
+            if (displayChanged) {
+                stateSink.onState(player, result.state());
+            }
             return;
         }
         for (Transition transition : result.transitions()) {
@@ -266,6 +287,16 @@ public final class PlayerStateTracker {
         }
         for (TransitionSink sink : sinks) {
             sink.onTransitions(player, result.state(), result.transitions());
+        }
+        List<String> discovered = DiscoveryRecorder.record(result.transitions(), evaluator.definitions(), DiscoveryCapabilities.of(player));
+        for (String bonusId : discovered) {
+            diagnostic.line("discovery player=" + player.getName() + " bonus=" + bonusId);
+        }
+        if (!discovered.isEmpty() && discoverySink != null) {
+            discoverySink.onDiscovered(player, discovered);
+        }
+        if (displayChanged) {
+            stateSink.onState(player, result.state());
         }
     }
 

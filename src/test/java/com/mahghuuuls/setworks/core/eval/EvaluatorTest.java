@@ -325,6 +325,21 @@ class EvaluatorTest {
         assertEquals(Long.MAX_VALUE, evaluator.nextConditionDue(bare.state(), 127));
     }
 
+    @Test
+    void sameDisplayIgnoresReasonChangesButSeesCountsPiecesAndActivity() {
+        Evaluator evaluator = evaluator();
+        PlayerSetState two = evaluator.evaluate(PlayerSetState.empty(PLAYER, "p"), rebuild(iron(2), 1)).state();
+        PlayerSetState twoAgain = evaluator.evaluate(two, changed(iron(2), 2, "hotbar")).state();
+        assertTrue(PlayerSetState.sameDisplay(two, twoAgain), "an unrelated change shows the same thing");
+        PlayerSetState three = evaluator.evaluate(twoAgain, changed(iron(3), 3, "legs")).state();
+        assertFalse(PlayerSetState.sameDisplay(twoAgain, three), "a new piece changes the count");
+        PlayerSetState dead = evaluator.evaluate(three, new EvaluationInput(iron(3), Collections.<String>emptySet(), false, 4, false, true, null)).state();
+        assertFalse(PlayerSetState.sameDisplay(three, dead), "active flags changed");
+        PlayerSetState spectator = evaluator.evaluate(dead, new EvaluationInput(iron(3), Collections.<String>emptySet(), false, 5, true, false, null)).state();
+        assertTrue(PlayerSetState.sameDisplay(dead, spectator), "dead and spectator show the same: nothing active, same pieces");
+        assertFalse(PlayerSetState.sameDisplay(PlayerSetState.empty(PLAYER, "p"), two), "the first evaluation always differs from empty");
+    }
+
     private static int countActivations(List<Transition> transitions) {
         int n = 0;
         for (Transition t : transitions) {

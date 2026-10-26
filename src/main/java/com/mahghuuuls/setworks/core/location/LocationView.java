@@ -2,6 +2,7 @@ package com.mahghuuuls.setworks.core.location;
 
 import com.mahghuuuls.setworks.api.ILocation;
 import com.mahghuuuls.setworks.api.SlotStack;
+import com.mahghuuuls.setworks.core.match.ItemStackView;
 import com.mahghuuuls.setworks.core.match.SlotCandidate;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;

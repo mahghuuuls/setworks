@@ -1,6 +1,5 @@
-package com.mahghuuuls.setworks.core.location;
+package com.mahghuuuls.setworks.core.match;
 
-import com.mahghuuuls.setworks.core.match.ItemView;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -24,6 +23,7 @@ public final class ItemStackView implements ItemView {
 
     private final ItemStack stack;
     private final String registryName;
+    private Set<String> oreNames;
 
     public ItemStackView(ItemStack stack) {
         this.stack = stack == null ? ItemStack.EMPTY : stack;
@@ -52,8 +52,12 @@ public final class ItemStackView implements ItemView {
 
     @Override
     public Set<String> oreNames() {
+        if (oreNames != null) {
+            return oreNames;
+        }
         if (stack.isEmpty() || registryName == null) {
-            return Collections.emptySet();
+            oreNames = Collections.emptySet();
+            return oreNames;
         }
         String cacheKey = registryName + '@' + stack.getItemDamage();
         Set<String> names = ORE_CACHE.get(cacheKey);
@@ -61,6 +65,7 @@ public final class ItemStackView implements ItemView {
             names = resolve(stack);
             ORE_CACHE.put(cacheKey, names);
         }
+        oreNames = names;
         return names;
     }
 
@@ -87,7 +92,7 @@ public final class ItemStackView implements ItemView {
     }
 
     /** True when both stacks hold the same item and metadata, ignoring count and NBT. */
-    static boolean sameItemAndMeta(ItemStack a, ItemStack b) {
+    public static boolean sameItemAndMeta(ItemStack a, ItemStack b) {
         if (a.isEmpty() || b.isEmpty()) {
             return a.isEmpty() == b.isEmpty();
         }

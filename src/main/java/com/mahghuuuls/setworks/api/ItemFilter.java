@@ -21,9 +21,10 @@ public final class ItemFilter {
         private final String path;
         private final String value;
 
+        /** {@code value} {@code null} or empty means the key only has to exist. */
         public NbtRule(String path, String value) {
             this.path = requireText(path, "path");
-            this.value = value;
+            this.value = value == null || value.isEmpty() ? null : value;
         }
 
         public String path() {

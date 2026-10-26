@@ -115,12 +115,13 @@ public final class ExampleSets {
         SetworksApi.registerBonus(BonusBuilder.bonus("setworks:iron_secret")
                 .requiresAll("setworks:iron_armor")
                 .visibility(Visibility.HIDDEN)
+                .attribute("generic.luck", 1, "add")
                 .description("Iron Secret: never shown"), SOURCE);
         SetworksApi.registerBonus(BonusBuilder.bonus("setworks:iron_memory")
                 .requires("setworks:iron_armor", 3)
                 .visibility(Visibility.DISCOVERED)
                 .attribute("generic.armor", 2, "add")
-                .description("Iron Memory: +2 more armor, shown once you have had three pieces on"), SOURCE);
+                .description("setworks.example.iron_memory.description"), SOURCE);
 
         // Metadata and ore dictionary filters.
         SetworksApi.registerSet(SetBuilder.set("setworks:blue_banner")

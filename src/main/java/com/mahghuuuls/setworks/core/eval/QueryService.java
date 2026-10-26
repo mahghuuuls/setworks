@@ -2,7 +2,7 @@ package com.mahghuuuls.setworks.core.eval;
 
 import com.mahghuuuls.setworks.api.BonusState;
 import com.mahghuuuls.setworks.api.ISetworksQuery;
-import com.mahghuuuls.setworks.core.location.ItemStackView;
+import com.mahghuuuls.setworks.core.match.ItemStackView;
 import com.mahghuuuls.setworks.core.match.CompiledDefinitions;
 import com.mahghuuuls.setworks.core.match.SlotCandidate;
 import net.minecraft.entity.player.EntityPlayer;

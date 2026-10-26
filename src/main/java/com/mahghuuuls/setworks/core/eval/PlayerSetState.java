@@ -113,4 +113,22 @@ public final class PlayerSetState {
         BonusEntry entry = bonuses.get(bonusId);
         return entry == null ? BonusState.MISSING_EQUIPMENT : entry.state();
     }
+
+    /** True when the two states show the same thing: the same satisfied piece names per set and the same active bonuses. */
+    public static boolean sameDisplay(PlayerSetState a, PlayerSetState b) {
+        if (!a.sets.keySet().equals(b.sets.keySet()) || !a.bonuses.keySet().equals(b.bonuses.keySet())) {
+            return false;
+        }
+        for (Map.Entry<String, SetState> set : a.sets.entrySet()) {
+            if (!set.getValue().satisfiedPieces().keySet().equals(b.sets.get(set.getKey()).satisfiedPieces().keySet())) {
+                return false;
+            }
+        }
+        for (Map.Entry<String, BonusEntry> bonus : a.bonuses.entrySet()) {
+            if (bonus.getValue().isActive() != b.bonuses.get(bonus.getKey()).isActive()) {
+                return false;
+            }
+        }
+        return true;
+    }
 }
