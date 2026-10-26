@@ -1,0 +1,19 @@
+// No #loader line: this file runs in CraftTweaker's default loader, between pre-initialization and
+// initialization. Setworks queues the calls and applies them at load complete, so they work the
+// same as from the setworks loader. Rename to setworks_override.zs to try it with the example sets on.
+
+import mods.setworks.Setworks;
+
+// Replace the Java example set with a script version of the same id (same pieces, another name).
+Setworks.replaceSet("setworks:iron_armor")
+    .name("Iron Armor (from a script)")
+    .armor(<minecraft:iron_helmet>, <minecraft:iron_chestplate>, <minecraft:iron_leggings>, <minecraft:iron_boots>);
+
+// Disable an example set: its bonuses go with it.
+Setworks.disableSet("setworks:wayfinder");
+
+// Change the text of an example bonus.
+Setworks.modifyBonus("setworks:iron_resolve").description("Iron Resolve: +2 armor (text changed by a script)");
+
+// Let golden boots count as the feet piece of the mixed mail example set.
+Setworks.addAlternatives("setworks:mixed_mail", "feet", [<minecraft:golden_boots>]);

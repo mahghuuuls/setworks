@@ -332,6 +332,11 @@ public final class SetworksRuntime implements SetworksApi.Registrar {
     }
 
     @Override
+    public void reportScriptFailure(String description) {
+        registry.reportScriptFailure(description);
+    }
+
+    @Override
     public boolean isFrozen() {
         return registry.isFrozen();
     }

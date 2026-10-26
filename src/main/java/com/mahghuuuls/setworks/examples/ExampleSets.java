@@ -1,5 +1,7 @@
 package com.mahghuuuls.setworks.examples;
 
+import net.minecraftforge.fml.common.Loader;
+import com.mahghuuuls.setworks.SetworksMod;
 import com.mahghuuuls.setworks.api.BonusBuilder;
 import com.mahghuuuls.setworks.api.DefinitionSource;
 import com.mahghuuuls.setworks.api.ItemFilter;
@@ -133,6 +135,21 @@ public final class ExampleSets {
                 .potion("minecraft:luck", 1, false)
                 .description("Blue Banner: Luck I with blue wool in the off hand and an iron ingot in the hotbar"), SOURCE);
 
+        // A Baubles ring piece through the baubles:ring location (both ring slots). Baubles ships no ring item, so
+        // the piece accepts any item with the gold nugget ore name worn as a ring: a pack's ring item that lists
+        // that ore, or the dev fixture that makes gold nuggets rings. Skipped with a note when Baubles is absent;
+        // a definition that names baubles:ring without Baubles is invalid with an unknown-location error.
+        if (Loader.isModLoaded("baubles")) {
+            SetworksApi.registerSet(SetBuilder.set("setworks:ring_bearer")
+                    .displayName("Ring Bearer")
+                    .piece(PieceBuilder.piece("ring").accept(ItemFilter.ore("nuggetGold")).at("baubles:ring")), SOURCE);
+            SetworksApi.registerBonus(BonusBuilder.bonus("setworks:ring_bearer_fortune")
+                    .requiresAll("setworks:ring_bearer")
+                    .attribute("generic.luck", 2, "add")
+                    .description("Ring Bearer: +2 luck with a gold ring on"), SOURCE);
+        } else {
+            SetworksMod.LOGGER.info("example setworks:ring_bearer skipped: Baubles is not loaded");
+        }
         if (Boolean.getBoolean(INVALID_EXAMPLE_PROPERTY)) {
             SetworksApi.registerSet(SetBuilder.set("setworks:broken_example")
                     .displayName("Broken Example")

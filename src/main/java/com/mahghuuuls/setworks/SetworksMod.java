@@ -12,6 +12,7 @@ import com.mahghuuuls.setworks.examples.ExampleSets;
 import com.mahghuuuls.setworks.network.SetworksNetwork;
 import com.mahghuuuls.setworks.proxy.CommonProxy;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLConstructionEvent;
@@ -73,11 +74,22 @@ public class SetworksMod {
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         MinecraftForge.EVENT_BUS.register(new DiscoveryCapabilities.Events());
+        if (Loader.isModLoaded("baubles")) {
+            // The Baubles classes are loaded only here, so a game without Baubles never touches them.
+            com.mahghuuuls.setworks.compat.baubles.BaublesLocations.register(LOGGER);
+            if (Boolean.getBoolean(ExampleSets.INVALID_EXAMPLE_PROPERTY)) {
+                MinecraftForge.EVENT_BUS.register(com.mahghuuuls.setworks.compat.baubles.DevBaubleFixture.handler());
+            }
+        }
         proxy.init();
     }
 
     @Mod.EventHandler
     public void loadComplete(FMLLoadCompleteEvent event) {
+        if (Loader.isModLoaded("crafttweaker")) {
+            // The bridge class is loaded only here, so a game without CraftTweaker never touches it.
+            com.mahghuuuls.setworks.compat.crafttweaker.CraftTweakerBridge.loadScriptsAndApply(LOGGER);
+        }
         runtime.locations().freeze();
         runtime.effectKinds().freeze();
         runtime.conditionKinds().freeze();

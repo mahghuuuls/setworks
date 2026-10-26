@@ -1,0 +1,26 @@
+#loader setworks
+
+// Development checks, not for a pack: a script condition that throws, and event handlers that print
+// to crafttweaker.log. Rename to setworks_dev.zs with the example sets on.
+
+import crafttweaker.player.IPlayer;
+import mods.setworks.Setworks;
+import mods.setworks.BonusEvent;
+
+// The condition throws every time it runs: the bonus stays inactive with reason "condition error",
+// the error is logged once, and every other bonus of the player keeps working.
+Setworks.bonus("example:dev_throwing", "setworks:iron_armor", 1, "Dev: a script condition that throws")
+    .whenLabelled("dev throws on purpose", function(player as IPlayer) as bool {
+        val numbers as int[] = [1];
+        return numbers[5] > 0;
+    })
+    .attribute("generic.luck", 1, "add");
+
+// One line per transition, with a query made inside the handler.
+events.onSetworksBonusActivated(function(event as BonusEvent) {
+    print("Setworks dev: " + event.bonusId + " active for " + event.player.name
+        + ", iron pieces " + event.player.setworksPieceCount("setworks:iron_armor"));
+});
+events.onSetworksBonusDeactivated(function(event as BonusEvent) {
+    print("Setworks dev: " + event.bonusId + " inactive for " + event.player.name + " (" + event.reason + ": " + event.detail + ")");
+});

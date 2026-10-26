@@ -1,0 +1,13 @@
+#loader setworks
+
+// A parse error on purpose. Rename this file to setworks_broken.zs to see what Setworks reports:
+// CraftTweaker stops parsing this file and skips every later file of the setworks loader, and
+// /setworks validate names this file and the files that did not run. Setworks cannot isolate a
+// parse error; it reports the scope CraftTweaker applies.
+
+import mods.setworks.Setworks;
+
+Setworks.armorSet("example:broken_armor", "Broken Armor",
+    <minecraft:chainmail_helmet>, <minecraft:chainmail_chestplate>, <minecraft:chainmail_leggings>, <minecraft:chainmail_boots>
+
+Setworks.bonus("example:broken_bonus", "example:broken_armor", 2, "never registered");

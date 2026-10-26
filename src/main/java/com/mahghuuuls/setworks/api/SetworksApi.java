@@ -32,6 +32,9 @@ public final class SetworksApi {
 
         RegistrationResult registerConditionKind(IConditionKind kind);
 
+        /** Records a script engine failure for the validation report; see {@link SetworksApi#reportScriptFailure}. */
+        void reportScriptFailure(String description);
+
         boolean isFrozen();
     }
 
@@ -191,6 +194,17 @@ public final class SetworksApi {
         return copy;
     }
 
+    /**
+     * Reports a script engine failure at the scope the engine applies (one file, or the rest of a
+     * loader), so {@code /setworks validate} and the load summary can show it. Accepted before and
+     * after the freeze. For the CraftTweaker bridge; a mod normally has nothing to report here.
+     */
+    public static void reportScriptFailure(String description) {
+        if (description != null && !description.trim().isEmpty()) {
+            service().reportScriptFailure(description.trim());
+        }
+    }
+
     /** True once startup completed and definitions are final. */
     public static boolean isFrozen() {
         Registrar current = registrar;
@@ -254,6 +268,10 @@ public final class SetworksApi {
         @Override
         public RegistrationResult registerConditionKind(IConditionKind kind) {
             return notLoaded();
+        }
+
+        @Override
+        public void reportScriptFailure(String description) {
         }
 
         @Override

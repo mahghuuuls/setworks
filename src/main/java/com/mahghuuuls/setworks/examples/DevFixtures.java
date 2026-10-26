@@ -44,6 +44,15 @@ public final class DevFixtures {
         SetworksApi.registerSet(SetBuilder.set("setworks:iron_armor")
                 .displayName("Duplicate Iron")
                 .piece(PieceBuilder.piece("head").accept("minecraft:iron_helmet").at("head")), SOURCE);
+        // A set on the Baubles ring location, registered whether or not Baubles is present: without Baubles it is
+        // disabled with an unknown-location error naming baubles:ring; with it, a gold nugget worn as a ring counts.
+        SetworksApi.registerSet(SetBuilder.set("setworks:fixture_ring")
+                .displayName("Fixture Ring")
+                .piece(PieceBuilder.piece("ring").accept("minecraft:gold_nugget").at("baubles:ring")), SOURCE);
+        SetworksApi.registerBonus(BonusBuilder.bonus("setworks:fixture_ring_bonus")
+                .requiresAll("setworks:fixture_ring")
+                .attribute("generic.maxHealth", 2, "add")
+                .description("Fixture Ring: +2 max health with a gold nugget ring on"), SOURCE);
         // Disable the full-set bonus of the highest-only example so the lower threshold applies with four pieces.
         SetworksApi.disableBonus("setworks:leather_silent", SOURCE);
         // Two listeners: the first throws on every activation, the second must still be called.
