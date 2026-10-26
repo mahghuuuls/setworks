@@ -64,6 +64,24 @@ public final class PlayerSetState {
         public boolean isActive() {
             return state.isActive();
         }
+
+        /**
+         * True when the player wears every piece the bonus requires: active, or held back only by a
+         * condition, a condition error, or a higher threshold of the same set. False when a piece is
+         * missing, and for a dead or spectating player, whose sets do not apply. The tooltip colors by
+         * this flag (REQ-028); conditions do not change the color.
+         */
+        public boolean equipmentMet() {
+            switch (state) {
+                case ACTIVE:
+                case CONDITION_FAILED:
+                case CONDITION_ERROR:
+                case SUPERSEDED:
+                    return true;
+                default:
+                    return false;
+            }
+        }
     }
 
     private final UUID playerId;
@@ -114,7 +132,10 @@ public final class PlayerSetState {
         return entry == null ? BonusState.MISSING_EQUIPMENT : entry.state();
     }
 
-    /** True when the two states show the same thing: the same satisfied piece names per set and the same active bonuses. */
+    /**
+     * True when the two states show the same thing: the same satisfied piece names per set and the
+     * same bonuses with their pieces on. A condition outcome alone changes nothing on the client.
+     */
     public static boolean sameDisplay(PlayerSetState a, PlayerSetState b) {
         if (!a.sets.keySet().equals(b.sets.keySet()) || !a.bonuses.keySet().equals(b.bonuses.keySet())) {
             return false;
@@ -125,7 +146,7 @@ public final class PlayerSetState {
             }
         }
         for (Map.Entry<String, BonusEntry> bonus : a.bonuses.entrySet()) {
-            if (bonus.getValue().isActive() != b.bonuses.get(bonus.getKey()).isActive()) {
+            if (bonus.getValue().equipmentMet() != b.bonuses.get(bonus.getKey()).equipmentMet()) {
                 return false;
             }
         }

@@ -28,7 +28,7 @@ import java.util.Set;
  * the moment the player discovers it. A player who discovered nothing gets the visible-only snapshot,
  * built once per server start; a player with discoveries gets one built for them at join. A state
  * message names only bonuses the player may see (visible, or discovered by that player), so a hidden
- * or undiscovered bonus never reaches the client even while it is active. Runs on the server only; it
+ * or undiscovered bonus never reaches the client even while its pieces are on. Runs on the server only; it
  * reads the evaluation state and the discovery record directly.
  */
 public final class ServerStateSink implements StateSink, DiscoverySink {
@@ -120,7 +120,7 @@ public final class ServerStateSink implements StateSink, DiscoverySink {
         return shown;
     }
 
-    /** The displayed part of a state: piece names per set and the active bonus ids among {@code shownBonuses}. */
+    /** The displayed part of a state: piece names per set and, among {@code shownBonuses}, the ids whose required pieces are all worn. */
     public static DisplayState toDisplay(PlayerSetState state, Set<String> shownBonuses) {
         Map<String, List<String>> pieces = new LinkedHashMap<String, List<String>>();
         for (Map.Entry<String, PlayerSetState.SetState> set : state.sets().entrySet()) {
@@ -130,12 +130,12 @@ public final class ServerStateSink implements StateSink, DiscoverySink {
             }
             pieces.put(set.getKey(), names);
         }
-        Set<String> active = new LinkedHashSet<String>();
+        Set<String> equipped = new LinkedHashSet<String>();
         for (Map.Entry<String, PlayerSetState.BonusEntry> bonus : state.bonuses().entrySet()) {
-            if (bonus.getValue().isActive() && shownBonuses.contains(bonus.getKey())) {
-                active.add(bonus.getKey());
+            if (bonus.getValue().equipmentMet() && shownBonuses.contains(bonus.getKey())) {
+                equipped.add(bonus.getKey());
             }
         }
-        return new DisplayState(pieces, active);
+        return new DisplayState(pieces, equipped);
     }
 }

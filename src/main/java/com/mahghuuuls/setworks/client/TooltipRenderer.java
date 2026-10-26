@@ -11,11 +11,12 @@ import java.util.List;
 /**
  * Builds the tooltip lines for a stack from the snapshot and the player's state. One block per
  * set the stack belongs to: a blank line, the set name in gold with {@code (worn/total)}, then one
- * {@code (N) description} line per bonus displayed under the set, green when active and gray
- * otherwise, single-set bonuses first by ascending threshold and multi-set bonuses after in author
- * order. While Shift is held the piece lines follow the name: alternatives joined by " or ",
- * white when the piece is satisfied and gray otherwise. Nothing else is added. Pure text with
- * colour codes; the translator supplies language lookups.
+ * {@code (N) description} line per bonus displayed under the set, green when the player wears every
+ * piece the bonus requires and gray otherwise (a condition never changes the color), single-set
+ * bonuses first by ascending threshold and multi-set bonuses after in author order. While Shift is
+ * held the piece lines follow the name, alternatives joined by " or ", white when the piece is
+ * satisfied and gray otherwise, and one blank line separates them from the bonus lines (none when
+ * the block has no bonus line). Nothing else is added. Pure text with colour codes; the translator supplies language lookups.
  */
 public final class TooltipRenderer {
 
@@ -51,13 +52,17 @@ public final class TooltipRenderer {
             lines.add("");
             int worn = state.count(setId);
             lines.add(GOLD + translator.translate(set.displayName()) + " (" + worn + "/" + set.pieces().size() + ")");
+            List<DisplaySnapshot.BonusDisplay> bonuses = bonusesUnder(snapshot, setId);
             if (shift) {
                 for (DisplaySnapshot.PieceDisplay piece : set.pieces()) {
                     lines.add((state.isSatisfied(setId, piece.name()) ? WHITE : GRAY) + pieceLabel(piece, translator));
                 }
+                if (!bonuses.isEmpty()) {
+                    lines.add("");
+                }
             }
-            for (DisplaySnapshot.BonusDisplay bonus : bonusesUnder(snapshot, setId)) {
-                String colour = state.isActive(bonus.id()) ? GREEN : GRAY;
+            for (DisplaySnapshot.BonusDisplay bonus : bonuses) {
+                String colour = state.isEquipped(bonus.id()) ? GREEN : GRAY;
                 lines.add(colour + "(" + bonus.thresholds().get(setId) + ") " + translator.translate(bonus.description()));
             }
         }

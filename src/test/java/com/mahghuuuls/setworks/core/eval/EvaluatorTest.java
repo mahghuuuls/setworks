@@ -261,6 +261,7 @@ class EvaluatorTest {
         Evaluator.Result failing = evaluator.evaluate(PlayerSetState.empty(PLAYER, "p"), rebuild(leather(4), 1));
         assertEquals(BonusState.CONDITION_FAILED, failing.state().bonusState("t:leather4"));
         assertEquals("t:never", failing.state().bonuses().get("t:leather4").detail());
+        assertTrue(failing.state().bonuses().get("t:leather4").equipmentMet(), "pieces on, condition failed: shown green");
         assertTrue(failing.state().isActive("t:leather2"));
         // Not due yet (interval 5): the previous outcome is kept and nothing changes.
         pass[0] = true;
@@ -272,6 +273,8 @@ class EvaluatorTest {
         Evaluator.Result due = evaluator.evaluate(notDue.state(), changed(leather(4), 6, "hotbar"));
         assertTrue(due.state().isActive("t:leather4"));
         assertEquals(BonusState.SUPERSEDED, due.state().bonusState("t:leather2"));
+        assertTrue(due.state().bonuses().get("t:leather2").equipmentMet(), "superseded still has its pieces on");
+        assertTrue(PlayerSetState.sameDisplay(failing.state(), due.state()), "the condition outcome alone sends no state message");
         // Not due again: the superseded bonus stays superseded, with no spurious transition.
         Evaluator.Result stable = evaluator.evaluate(due.state(), changed(leather(4), 7, "hotbar"));
         assertEquals(BonusState.SUPERSEDED, stable.state().bonusState("t:leather2"));
@@ -326,7 +329,7 @@ class EvaluatorTest {
     }
 
     @Test
-    void sameDisplayIgnoresReasonChangesButSeesCountsPiecesAndActivity() {
+    void sameDisplayIgnoresReasonChangesButSeesCountsPiecesAndEquipment() {
         Evaluator evaluator = evaluator();
         PlayerSetState two = evaluator.evaluate(PlayerSetState.empty(PLAYER, "p"), rebuild(iron(2), 1)).state();
         PlayerSetState twoAgain = evaluator.evaluate(two, changed(iron(2), 2, "hotbar")).state();
@@ -334,9 +337,10 @@ class EvaluatorTest {
         PlayerSetState three = evaluator.evaluate(twoAgain, changed(iron(3), 3, "legs")).state();
         assertFalse(PlayerSetState.sameDisplay(twoAgain, three), "a new piece changes the count");
         PlayerSetState dead = evaluator.evaluate(three, new EvaluationInput(iron(3), Collections.<String>emptySet(), false, 4, false, true, null)).state();
-        assertFalse(PlayerSetState.sameDisplay(three, dead), "active flags changed");
+        assertFalse(PlayerSetState.sameDisplay(three, dead), "a dead player's sets do not apply: the flags changed");
+        assertFalse(dead.bonuses().get("t:iron2").equipmentMet());
         PlayerSetState spectator = evaluator.evaluate(dead, new EvaluationInput(iron(3), Collections.<String>emptySet(), false, 5, true, false, null)).state();
-        assertTrue(PlayerSetState.sameDisplay(dead, spectator), "dead and spectator show the same: nothing active, same pieces");
+        assertTrue(PlayerSetState.sameDisplay(dead, spectator), "dead and spectator show the same: nothing equipped, same pieces");
         assertFalse(PlayerSetState.sameDisplay(PlayerSetState.empty(PLAYER, "p"), two), "the first evaluation always differs from empty");
     }
 

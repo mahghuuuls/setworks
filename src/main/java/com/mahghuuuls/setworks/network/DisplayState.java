@@ -13,20 +13,21 @@ import java.util.Set;
 
 /**
  * What one player's client must know about that player: per set, the names of the satisfied
- * pieces; and the ids of the active bonuses. Counts are the sizes of the piece lists. Immutable.
+ * pieces; and the ids of the bonuses whose required pieces are all worn (whatever their
+ * conditions say). Counts are the sizes of the piece lists. Immutable.
  */
 public final class DisplayState {
 
     private final Map<String, List<String>> satisfiedPieces;
-    private final Set<String> activeBonuses;
+    private final Set<String> equippedBonuses;
 
-    public DisplayState(Map<String, List<String>> satisfiedPieces, Set<String> activeBonuses) {
+    public DisplayState(Map<String, List<String>> satisfiedPieces, Set<String> equippedBonuses) {
         Map<String, List<String>> copy = new LinkedHashMap<String, List<String>>();
         for (Map.Entry<String, List<String>> entry : satisfiedPieces.entrySet()) {
             copy.put(entry.getKey(), Collections.unmodifiableList(new ArrayList<String>(entry.getValue())));
         }
         this.satisfiedPieces = Collections.unmodifiableMap(copy);
-        this.activeBonuses = Collections.unmodifiableSet(new LinkedHashSet<String>(activeBonuses));
+        this.equippedBonuses = Collections.unmodifiableSet(new LinkedHashSet<String>(equippedBonuses));
     }
 
     public static DisplayState empty() {
@@ -46,12 +47,13 @@ public final class DisplayState {
         return satisfiedPieces(setId).contains(pieceName);
     }
 
-    public boolean isActive(String bonusId) {
-        return activeBonuses.contains(bonusId);
+    /** True when the player wears every piece this bonus requires; the green of its tooltip line. */
+    public boolean isEquipped(String bonusId) {
+        return equippedBonuses.contains(bonusId);
     }
 
-    public Set<String> activeBonuses() {
-        return activeBonuses;
+    public Set<String> equippedBonuses() {
+        return equippedBonuses;
     }
 
     public Map<String, List<String>> allSatisfiedPieces() {
@@ -67,8 +69,8 @@ public final class DisplayState {
                 Codec.writeString(buf, piece);
             }
         }
-        ByteBufUtils.writeVarInt(buf, activeBonuses.size(), 5);
-        for (String bonus : activeBonuses) {
+        ByteBufUtils.writeVarInt(buf, equippedBonuses.size(), 5);
+        for (String bonus : equippedBonuses) {
             Codec.writeString(buf, bonus);
         }
     }
@@ -86,10 +88,10 @@ public final class DisplayState {
             pieces.put(setId, names);
         }
         int bonusCount = ByteBufUtils.readVarInt(buf, 5);
-        Set<String> active = new LinkedHashSet<String>();
+        Set<String> equipped = new LinkedHashSet<String>();
         for (int b = 0; b < bonusCount; b++) {
-            active.add(Codec.readString(buf));
+            equipped.add(Codec.readString(buf));
         }
-        return new DisplayState(pieces, active);
+        return new DisplayState(pieces, equipped);
     }
 }

@@ -72,7 +72,18 @@ class TooltipRendererTest {
                 "§6Iron Armor (3/4)",
                 "§a(2) +2 Armor",
                 "§7(4) +4 Max Health, Speed I",
-                "§7(4) Strike"), lines, "blank, gold name with count, single-set ascending, then multi-set; green only when active");
+                "§7(4) Strike"), lines, "blank, gold name with count, single-set ascending, then multi-set; green only with the pieces on");
+    }
+
+    @Test
+    void shiftAddsNoSeparatorToABlockWithoutBonusLines() {
+        List<DisplaySnapshot.PieceDisplay> hat = Collections.singletonList(
+                new DisplaySnapshot.PieceDisplay("head", Collections.singletonList(alt("minecraft:leather_helmet", "Leather Cap"))));
+        DisplaySnapshot bare = new DisplaySnapshot(
+                Collections.singletonList(new DisplaySnapshot.SetDisplay("t:hat", "Hat", ThresholdMode.CUMULATIVE, hat)),
+                Collections.<DisplaySnapshot.BonusDisplay>emptyList());
+        List<String> lines = TooltipRenderer.render(bare, DisplayState.empty(), Collections.singletonList("t:hat"), true, FAKE_LANG);
+        assertEquals(Arrays.asList("", "§6Hat (0/1)", "§7Leather Cap"), lines, "no bonus lines, so no separator and no trailing blank");
     }
 
     @Test
@@ -83,14 +94,16 @@ class TooltipRendererTest {
         assertEquals("§fIron Chestplate", lines.get(3));
         assertEquals("§fIron Leggings", lines.get(4));
         assertEquals("§7Iron Boots", lines.get(5), "the missing piece names its items in gray");
-        assertEquals("§a(2) +2 Armor", lines.get(6));
-        assertEquals(9, lines.size());
+        assertEquals("", lines.get(6), "one blank line separates the piece lines from the bonus lines");
+        assertEquals("§a(2) +2 Armor", lines.get(7));
+        assertEquals(10, lines.size());
         // Alternatives are joined by " or "; an ore label is shown as given.
         List<String> weapon = TooltipRenderer.render(snapshot(), threeOfFour(), Collections.singletonList("t:weapons"), true, FAKE_LANG);
         assertEquals("§6Iron Weapons (0/1)", weapon.get(1), "a set name that is a key is translated");
         assertEquals("§7Iron Sword or #ingotIron", weapon.get(2));
-        assertEquals("§7(1) Strike", weapon.get(3), "the multi-set bonus shows under the weapon set with its own threshold");
-        assertEquals(4, weapon.size());
+        assertEquals("", weapon.get(3));
+        assertEquals("§7(1) Strike", weapon.get(4), "the multi-set bonus shows under the weapon set with its own threshold");
+        assertEquals(5, weapon.size());
     }
 
     @Test

@@ -112,7 +112,7 @@ class SnapshotBuilderTest {
     }
 
     @Test
-    void stateNamesOnlyBonusesTheSnapshotCarriesEvenWhenAHiddenOneIsActive() {
+    void stateNamesOnlyBonusesTheSnapshotCarriesEvenWhenAHiddenOneIsEquipped() {
         FrozenDefinitions frozen = definitions();
         DisplaySnapshot snapshot = new SnapshotBuilder(DESCRIPTIONS, KEYS).build(frozen, SnapshotBuilder.VISIBLE_ONLY);
         Evaluator evaluator = new Evaluator(new CompiledDefinitions(frozen), ConditionEvaluator.NONE, 20);
@@ -124,13 +124,42 @@ class SnapshotBuilderTest {
         assertTrue(state.isActive("t:secret"), "the hidden bonus is active on the server");
         assertTrue(state.isActive("t:memory"), "the undiscovered bonus is active on the server");
         DisplayState display = ServerStateSink.toDisplay(state, snapshot.bonusIds());
-        assertTrue(display.isActive("t:full"));
-        assertTrue(display.isActive("t:two"));
-        assertFalse(display.isActive("t:secret"), "hidden: never sent");
-        assertFalse(display.isActive("t:memory"), "undiscovered: never sent");
-        assertEquals(2, display.activeBonuses().size());
+        assertTrue(display.isEquipped("t:full"));
+        assertTrue(display.isEquipped("t:two"));
+        assertFalse(display.isEquipped("t:secret"), "hidden: never sent");
+        assertFalse(display.isEquipped("t:memory"), "undiscovered: never sent");
+        assertFalse(display.isEquipped("t:strike"), "its weapon piece is missing");
+        assertEquals(2, display.equippedBonuses().size());
         assertEquals(4, display.count("t:iron"));
         assertEquals(0, display.count("t:weapons"));
+    }
+
+    @Test
+    void stateNamesABonusWhosePiecesAreOnEvenWhenItsConditionFails() {
+        DefinitionRegistry registry = new DefinitionRegistry();
+        registry.registerSet(SetBuilder.set("t:iron").armor(ItemFilter.item("minecraft:iron_helmet"), ItemFilter.item("minecraft:iron_chestplate"),
+                ItemFilter.item("minecraft:iron_leggings"), ItemFilter.item("minecraft:iron_boots")).build(), SRC, false);
+        registry.registerBonus(BonusBuilder.bonus("t:sneaky").requires("t:iron", 2).description("Sneaky")
+                .condition("t:never", java.util.Collections.<String, String>emptyMap()).build(), SRC, false);
+        registry.registerBonus(BonusBuilder.bonus("t:all").requiresAll("t:iron").description("All").build(), SRC, false);
+        registry.freeze(ANYTHING);
+        FrozenDefinitions frozen = registry.definitions();
+        DisplaySnapshot snapshot = new SnapshotBuilder(DESCRIPTIONS, KEYS).build(frozen, SnapshotBuilder.VISIBLE_ONLY);
+        ConditionEvaluator failing = new ConditionEvaluator() {
+            public Result evaluate(BonusDefinition bonus, Object player, com.mahghuuuls.setworks.api.IConditionContext context) {
+                return new Result(Outcome.FAIL, "t:never");
+            }
+        };
+        Evaluator evaluator = new Evaluator(new CompiledDefinitions(frozen), failing, 20);
+        List<SlotCandidate> twoIron = Arrays.asList(new SlotCandidate("head", "head", new FakeItem("minecraft:iron_helmet")),
+                new SlotCandidate("chest", "chest", new FakeItem("minecraft:iron_chestplate")));
+        PlayerSetState state = evaluator.evaluate(PlayerSetState.empty(java.util.UUID.randomUUID(), "p"),
+                new EvaluationInput(twoIron, java.util.Collections.<String>emptySet(), true, 1, false, false, null)).state();
+        assertFalse(state.isActive("t:sneaky"), "the condition fails on the server");
+        DisplayState display = ServerStateSink.toDisplay(state, snapshot.bonusIds());
+        assertTrue(display.isEquipped("t:sneaky"), "its two pieces are on, so the line is green whatever the condition says");
+        assertFalse(display.isEquipped("t:all"), "two of four pieces: gray");
+        assertEquals(1, display.equippedBonuses().size());
     }
 
     @Test
@@ -192,7 +221,7 @@ class SnapshotBuilderTest {
         assertEquals(0, stateBack.count("t:unknown"));
         assertTrue(stateBack.isSatisfied("t:iron", "legs"));
         assertFalse(stateBack.isSatisfied("t:iron", "feet"));
-        assertTrue(stateBack.isActive("t:two"));
-        assertFalse(stateBack.isActive("t:full"));
+        assertTrue(stateBack.isEquipped("t:two"));
+        assertFalse(stateBack.isEquipped("t:full"));
     }
 }

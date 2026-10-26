@@ -1,6 +1,6 @@
 # Setworks
 
-Setworks lets modpack authors and mods define equipment sets with partial and full set bonuses, through ZenScript or a Java API. It ships no sets of its own and shows set membership and active bonuses in item tooltips.
+Setworks lets modpack authors and mods define equipment sets with partial and full set bonuses, through ZenScript or a Java API. It ships no sets of its own and shows set membership and the bonuses in item tooltips, green once the pieces are on.
 
 Minecraft 1.12.2, Forge. Runs on Cleanroom.
 
