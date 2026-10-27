@@ -1,6 +1,6 @@
 Setworks adds set bonuses for equipment. A modpack or a mod defines sets of items and the bonuses for wearing or carrying enough of them. Setworks counts the pieces, applies the bonuses, and shows all of it in item tooltips. It ships no sets of its own, so it changes nothing until a pack or a mod defines some.
 
-Similar results are possible with [Set Bonus](https://www.curseforge.com/minecraft/mc-mods/set-bonus) together with [CTSetBonus](https://github.com/mahghuuuls/ctsetbonus). Setworks puts what those two do into one mod, with scripts, an API, and the tooltips.
+Similar results are possible with [Set Bonus](https://www.curseforge.com/minecraft/mc-mods/set-bonus) together with [CTSetBonus](https://www.curseforge.com/minecraft/mc-mods/ctsetbonus). Setworks puts what those two do into one mod, with scripts, an API, and the tooltips.
 
 <span style="color:#d6a100">**AI usage disclaimer:** This mod was developed with AI-agent assistance using [this agent workflow](https://github.com/mahghuuuls/minecraft-1.12.2-mod-agent-workflow). The project owner reviewed the work during development.</span>
 
